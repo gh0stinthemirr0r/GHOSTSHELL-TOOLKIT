@@ -1,0 +1,11 @@
+{
+    "files": [
+        "connection_quality.py",
+        "eth_survey.py",
+        "main.py",
+        "netscan.py",
+        "pcap_capture.py",
+        "single_hostscan.py",
+        "wifi_survey.py"
+    ]
+}

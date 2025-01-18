@@ -1,0 +1,5 @@
+PySide6
+netifaces
+pythonping
+psutil
+scapy
