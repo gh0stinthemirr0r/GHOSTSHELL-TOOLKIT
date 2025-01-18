@@ -1,5 +1,7 @@
 # GhostShell Toolkit
 
+![GHOSTSHELL TOOLKIT Screenshot](https://github.com/gh0stinthemirr0r/GHOSTSHELL-TOOLKIT/blob/main/Ghostshell-Toolkit.png)
+
 Welcome to **GhostShell Toolkit** – a cross-platform network diagnostics and survey GUI application built using Python and PySide6. It provides a suite of network diagnostic tools, including connection quality measurement, throughput monitoring, network scanning, Wi-Fi surveying, and packet capture, all within an elegant custom user interface.
 
 ## Table of Contents
