@@ -30,9 +30,8 @@ try:
 except ImportError:
     PYTHONPING_AVAILABLE = False
 
-# For demonstration, define simplified versions of modules inline
+# Simplified function implementations for demonstration
 def measure_connection_quality(target: str, duration: int):
-    # Simplified version
     if not PYTHONPING_AVAILABLE:
         return {"avg_latency": -1, "packet_loss": 100.0}
     start_time = time.time()
@@ -163,18 +162,15 @@ def _survey_windows() -> List[Dict[str, Any]]:
         output = completed.stdout
     except subprocess.CalledProcessError as e:
         output = e.stdout or ""
-
     lines = output.splitlines()
     ap_list = []
     current_ssid = None
     current_security = "Unknown"
-
     ssid_pattern = re.compile(r"^SSID\s+\d+\s*:\s*(.*)$")
     bssid_pattern = re.compile(r"^\s*BSSID\s+\d+\s*:\s*([0-9A-Fa-f:]+)$")
     signal_pattern = re.compile(r"^\s*Signal\s*:\s*(\d+)%")
     channel_pattern = re.compile(r"^\s*Channel\s*:\s*(\d+)")
     auth_pattern = re.compile(r"^\s*Authentication\s*:\s*(.*)$")
-
     ap_entry = {}
     for line in lines:
         line = line.strip()
@@ -263,7 +259,7 @@ def capture_packets(interface: str, duration: int, output_file: str):
     wrpcap(output_file, packets)
 
 class PcapWorker(QObject):
-    captureFinished = Signal(str, int)  
+    captureFinished = Signal(str, int)
     captureError = Signal(str)
 
     def __init__(self, interface: str, out_file: str, duration: int):
@@ -379,10 +375,7 @@ def _build_subcommand_parser():
 
     return parser
 
-# --------------------------------------------------------------------------
-#  MAIN WINDOW
-# --------------------------------------------------------------------------
-CMD_PATH = "C:/Windows/System32/cmd.exe"  # Adjust for Linux/macOS if needed
+CMD_PATH = "C:/Windows/System32/cmd.exe"
 
 DEFAULT_BORDER_COLOR = "#00FFC0"
 DEFAULT_TEXT_COLOR = "#00ffe4"
@@ -396,7 +389,7 @@ ASCII_BANNER = r"""
      +-------------------------------------------+
 """
 
-RESIZE_MARGIN = 8  # how close to the edge to start a resize
+RESIZE_MARGIN = 8
 
 class GhostShellToolkit(QMainWindow):
     def __init__(self):
@@ -412,21 +405,18 @@ class GhostShellToolkit(QMainWindow):
 
         self.buildUI()
 
-        # Start QProcess for cmd.exe
         self.process = QProcess(self)
         self.process.readyReadStandardOutput.connect(self.onReadyReadStdOut)
         self.process.readyReadStandardError.connect(self.onReadyReadStdErr)
         self.process.start(CMD_PATH)
         self.process.waitForStarted(1000)
 
-        # Clear previous output and display banner
         self.commandOutput.clear()
         self.commandOutput.setHtml(f"<pre>{ASCII_BANNER}</pre>")
 
         self.throughputProcess = None
 
     def colorize_line(self, line: str) -> str:
-        """Return HTML string with color markup for given line."""
         html_line = line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         if "[ERROR]" in line:
             return f'<span style="color: red;">{html_line}</span>'
@@ -437,7 +427,7 @@ class GhostShellToolkit(QMainWindow):
 
     def appendColoredLine(self, line: str):
         colored_html = self.colorize_line(line)
-        self.commandOutput.appendHtml(colored_html)
+        self.commandOutput.append(colored_html)
 
     def buildUI(self):
         central_widget = QWidget()
@@ -527,11 +517,9 @@ class GhostShellToolkit(QMainWindow):
         right_layout.setContentsMargins(10, 10, 10, 10)
         right_layout.setSpacing(10)
 
-        # Use QTextEdit for colored HTML output
         self.commandOutput = QTextEdit()
         self.commandOutput.setReadOnly(True)
-        self.commandOutput.setStyleSheet(
-            f"""
+        self.commandOutput.setStyleSheet(f"""
             QTextEdit {{
                 background-color: {DEFAULT_BACKGROUND_COLOR};
                 color: {DEFAULT_TEXT_COLOR};
@@ -541,13 +529,11 @@ class GhostShellToolkit(QMainWindow):
                 font-size: 14px;
                 font-family: 'Courier New', monospace;
             }}
-            """
-        )
+        """)
         right_layout.addWidget(self.commandOutput, 1)
 
         self.inputLine = QLineEdit()
-        self.inputLine.setStyleSheet(
-            f"""
+        self.inputLine.setStyleSheet(f"""
             QLineEdit {{
                 background-color: rgba(90, 90, 90, 0.98);
                 color: {DEFAULT_TEXT_COLOR};
@@ -557,8 +543,7 @@ class GhostShellToolkit(QMainWindow):
                 font-size: 14px;
                 font-family: 'Courier New', monospace;
             }}
-            """
-        )
+        """)
         self.inputLine.setPlaceholderText("Enter command here...")
         self.inputLine.returnPressed.connect(self.onCommandEntered)
         right_layout.addWidget(self.inputLine, 0)
@@ -630,20 +615,28 @@ class GhostShellToolkit(QMainWindow):
 
     @Slot()
     def onConnQualityTimebased(self):
-        target, ok = QInputDialog.getText(self, "ADVANCED CONN QUALITY", "Enter IP or domain:")
+        duration, ok = QInputDialog.getInt(self, "Connection Quality", "Enter duration in seconds:", 30, 1, 3600)
+        if not ok:
+            return
+        target, ok = QInputDialog.getText(self, "Connection Quality", "Enter target IP or domain:")
         if not ok or not target.strip():
             return
-        self.appendColoredLine(f"[ConnQuality ADV] Testing {target.strip()} over multiple durations:")
+        self.appendColoredLine(f"[ConnQuality] Measuring connection quality for {duration}s to {target.strip()}...")
 
-        if not PYTHONPING_AVAILABLE:
-            self.appendColoredLine("[ERROR] pythonping is not installed.")
-            return
+        def worker():
+            result = measure_connection_quality(target.strip(), duration)
+            headers = f"{'Metric':<15} {'Value':<15}"
+            separator = "-"*30
+            rows = [
+                f"{'Avg Latency:':<15} {result['avg_latency']:.2f} ms",
+                f"{'Packet Loss:':<15} {result['packet_loss']:.2f}%",
+            ]
+            formatted = "\n".join([headers, separator] + rows)
+            self.appendColoredLine(formatted)
 
-        durations = [30, 90, 120, 300]
-        for d in durations:
-            # For demonstration, we'll use fake data.
-            self.appendColoredLine(f"  Duration {d}s -> Avg Latency: 12.34 ms, Packet Loss: 0.00%")
-        self.appendColoredLine("====================================================")
+        import threading
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
 
     @Slot()
     def onThroughputMonitor(self):
@@ -653,8 +646,34 @@ class GhostShellToolkit(QMainWindow):
         )
         if not ok:
             return
+        
         self.appendColoredLine("[THROUGHPUT] Starting throughput monitor...")
-        self.appendColoredLine(f"Consider using the GhostShell subcommand: throughput-monitor --interface {iface or ''}")
+
+        self.throughputProcess = QProcess(self)
+        self.throughputProcess.setProcessChannelMode(QProcess.MergedChannels)
+        self.throughputProcess.readyReadStandardOutput.connect(self.onThroughputOutput)
+        self.throughputProcess.readyReadStandardError.connect(self.onThroughputError)
+
+        python_executable = sys.executable
+        args = ["-u", "throughput.py"]
+        if iface.strip():
+            args.extend(["--interface", iface.strip()])
+
+        self.throughputProcess.start(python_executable, args)
+
+    @Slot()
+    def onThroughputOutput(self):
+        data = self.throughputProcess.readAllStandardOutput()
+        text = data.data().decode("utf-8", errors="ignore")
+        for line in text.splitlines():
+            self.appendColoredLine(line)
+
+    @Slot()
+    def onThroughputError(self):
+        data = self.throughputProcess.readAllStandardError()
+        text = data.data().decode("utf-8", errors="ignore")
+        for line in text.splitlines():
+            self.appendColoredLine("[ERROR] " + line)
 
     @Slot()
     def onWifiSurvey(self):
@@ -664,7 +683,6 @@ class GhostShellToolkit(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, "WiFi Survey Error", str(e))
             return
-
         if not results:
             self.appendColoredLine("[WIFI SURVEY] No networks found.")
             return
@@ -706,29 +724,22 @@ class GhostShellToolkit(QMainWindow):
         if not SCAPY_AVAILABLE:
             QMessageBox.critical(self, "PCAP Capture Error", "Scapy is not installed.")
             return
-
         interface, ok = QInputDialog.getText(self, "PCAP Capture", "Enter interface (e.g. eth0 or Wi-Fi):")
         if not ok or not interface.strip():
             return
-
         duration, ok = QInputDialog.getInt(self, "Capture Duration", "Seconds to capture:", 10, 1, 3600)
         if not ok:
             return
-
         out_file, ok = QInputDialog.getText(self, "Output PCAP", "File name:", text="capture.pcap")
         if not ok or not out_file.strip():
             return
-
         self.appendColoredLine(f"[PCAP] Capturing on '{interface}' for {duration}s -> {out_file}")
-
         self.pcapWorker = PcapWorker(interface.strip(), out_file.strip(), duration)
         self.pcapThread = QThread(self)
         self.pcapWorker.moveToThread(self.pcapThread)
-
         self.pcapThread.started.connect(self.pcapWorker.runCapture)
         self.pcapWorker.captureFinished.connect(self.onCaptureFinished)
         self.pcapWorker.captureError.connect(self.onCaptureError)
-
         self.pcapThread.start()
 
     @Slot(str, int)
@@ -744,7 +755,130 @@ class GhostShellToolkit(QMainWindow):
         self.pcapThread.quit()
         self.pcapThread.wait()
 
-    # ... (Remaining mouse/resize event handlers unchanged) ...
+    # Mouse/resize event handlers remain unchanged...
+
+    def mouseDoubleClickEvent(self, event):
+        globalPos = event.globalPosition().toPoint()
+        localPos = self.titleBar.mapFromGlobal(globalPos)
+        if (0 <= localPos.x() <= self.titleBar.width()) and (0 <= localPos.y() <= self.titleBar.height()):
+            if not self._isMaximized:
+                self.showMaximized()
+                self._isMaximized = True
+            else:
+                self.showNormal()
+                self._isMaximized = False
+        super().mouseDoubleClickEvent(event)
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        if event.button() == Qt.LeftButton:
+            self._dragPos = event.globalPosition().toPoint()
+            self._resizeRegion = self.getResizeRegion(event.pos())
+        else:
+            self._dragPos = None
+            self._resizeRegion = None
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        self._dragPos = None
+        self._resizeRegion = None
+
+    def mouseMoveEvent(self, event):
+        super().mouseMoveEvent(event)
+        if self._isMaximized:
+            return
+
+        if event.buttons() == Qt.LeftButton and self._dragPos:
+            if self._resizeRegion:
+                self.handleResize(event)
+            else:
+                globalPos = event.globalPosition().toPoint()
+                oldPos = self._dragPos
+                diff = globalPos - oldPos
+                if self._isInTitleBar(oldPos):
+                    self.move(self.x() + diff.x(), self.y() + diff.y())
+                self._dragPos = globalPos
+        else:
+            region = self.getResizeRegion(event.pos())
+            self.setCursor(self.getCursorForRegion(region))
+
+    def _isInTitleBar(self, globalPos):
+        localPos = self.titleBar.mapFromGlobal(globalPos)
+        return (0 <= localPos.x() <= self.titleBar.width()) and (0 <= localPos.y() <= self.titleBar.height())
+
+    def getResizeRegion(self, pos):
+        if self._isMaximized:
+            return None
+        rect = self.rect()
+        x, y = pos.x(), pos.y()
+        w, h = rect.width(), rect.height()
+        margin = RESIZE_MARGIN
+
+        top = y <= margin
+        bottom = y >= h - margin
+        left = x <= margin
+        right = x >= w - margin
+
+        if top and left:
+            return 'top-left'
+        if top and right:
+            return 'top-right'
+        if bottom and left:
+            return 'bottom-left'
+        if bottom and right:
+            return 'bottom-right'
+        if top:
+            return 'top'
+        if bottom:
+            return 'bottom'
+        if left:
+            return 'left'
+        if right:
+            return 'right'
+        return None
+
+    def getCursorForRegion(self, region):
+        if region in ('top-left', 'bottom-right'):
+            return Qt.SizeFDiagCursor
+        if region in ('top-right', 'bottom-left'):
+            return Qt.SizeBDiagCursor
+        if region in ('top', 'bottom'):
+            return Qt.SizeVerCursor
+        if region in ('left', 'right'):
+            return Qt.SizeHorCursor
+        return Qt.ArrowCursor
+
+    def handleResize(self, event):
+        old_pos = self._dragPos
+        new_pos = event.globalPosition().toPoint()
+        dx = new_pos.x() - old_pos.x()
+        dy = new_pos.y() - old_pos.y()
+
+        geom = self.geometry()
+        if 'left' in self._resizeRegion:
+            new_x = geom.x() + dx
+            new_w = geom.width() - dx
+            if new_w > 50:
+                geom.setX(new_x)
+                geom.setWidth(new_w)
+        elif 'right' in self._resizeRegion:
+            new_w = geom.width() + dx
+            if new_w > 50:
+                geom.setWidth(new_w)
+        if 'top' in self._resizeRegion:
+            new_y = geom.y() + dy
+            new_h = geom.height() - dy
+            if new_h > 50:
+                geom.setY(new_y)
+                geom.setHeight(new_h)
+        elif 'bottom' in self._resizeRegion:
+            new_h = geom.height() + dy
+            if new_h > 50:
+                geom.setHeight(new_h)
+
+        self.setGeometry(geom)
+        self._dragPos = new_pos
+
 
 def main():
     app = QApplication(sys.argv)

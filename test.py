@@ -757,6 +757,129 @@ class GhostShellToolkit(QMainWindow):
 
     # Mouse/resize event handlers remain unchanged...
 
+    def mouseDoubleClickEvent(self, event):
+        globalPos = event.globalPosition().toPoint()
+        localPos = self.titleBar.mapFromGlobal(globalPos)
+        if (0 <= localPos.x() <= self.titleBar.width()) and (0 <= localPos.y() <= self.titleBar.height()):
+            if not self._isMaximized:
+                self.showMaximized()
+                self._isMaximized = True
+            else:
+                self.showNormal()
+                self._isMaximized = False
+        super().mouseDoubleClickEvent(event)
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        if event.button() == Qt.LeftButton:
+            self._dragPos = event.globalPosition().toPoint()
+            self._resizeRegion = self.getResizeRegion(event.pos())
+        else:
+            self._dragPos = None
+            self._resizeRegion = None
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        self._dragPos = None
+        self._resizeRegion = None
+
+    def mouseMoveEvent(self, event):
+        super().mouseMoveEvent(event)
+        if self._isMaximized:
+            return
+
+        if event.buttons() == Qt.LeftButton and self._dragPos:
+            if self._resizeRegion:
+                self.handleResize(event)
+            else:
+                globalPos = event.globalPosition().toPoint()
+                oldPos = self._dragPos
+                diff = globalPos - oldPos
+                if self._isInTitleBar(oldPos):
+                    self.move(self.x() + diff.x(), self.y() + diff.y())
+                self._dragPos = globalPos
+        else:
+            region = self.getResizeRegion(event.pos())
+            self.setCursor(self.getCursorForRegion(region))
+
+    def _isInTitleBar(self, globalPos):
+        localPos = self.titleBar.mapFromGlobal(globalPos)
+        return (0 <= localPos.x() <= self.titleBar.width()) and (0 <= localPos.y() <= self.titleBar.height())
+
+    def getResizeRegion(self, pos):
+        if self._isMaximized:
+            return None
+        rect = self.rect()
+        x, y = pos.x(), pos.y()
+        w, h = rect.width(), rect.height()
+        margin = RESIZE_MARGIN
+
+        top = y <= margin
+        bottom = y >= h - margin
+        left = x <= margin
+        right = x >= w - margin
+
+        if top and left:
+            return 'top-left'
+        if top and right:
+            return 'top-right'
+        if bottom and left:
+            return 'bottom-left'
+        if bottom and right:
+            return 'bottom-right'
+        if top:
+            return 'top'
+        if bottom:
+            return 'bottom'
+        if left:
+            return 'left'
+        if right:
+            return 'right'
+        return None
+
+    def getCursorForRegion(self, region):
+        if region in ('top-left', 'bottom-right'):
+            return Qt.SizeFDiagCursor
+        if region in ('top-right', 'bottom-left'):
+            return Qt.SizeBDiagCursor
+        if region in ('top', 'bottom'):
+            return Qt.SizeVerCursor
+        if region in ('left', 'right'):
+            return Qt.SizeHorCursor
+        return Qt.ArrowCursor
+
+    def handleResize(self, event):
+        old_pos = self._dragPos
+        new_pos = event.globalPosition().toPoint()
+        dx = new_pos.x() - old_pos.x()
+        dy = new_pos.y() - old_pos.y()
+
+        geom = self.geometry()
+        if 'left' in self._resizeRegion:
+            new_x = geom.x() + dx
+            new_w = geom.width() - dx
+            if new_w > 50:
+                geom.setX(new_x)
+                geom.setWidth(new_w)
+        elif 'right' in self._resizeRegion:
+            new_w = geom.width() + dx
+            if new_w > 50:
+                geom.setWidth(new_w)
+        if 'top' in self._resizeRegion:
+            new_y = geom.y() + dy
+            new_h = geom.height() - dy
+            if new_h > 50:
+                geom.setY(new_y)
+                geom.setHeight(new_h)
+        elif 'bottom' in self._resizeRegion:
+            new_h = geom.height() + dy
+            if new_h > 50:
+                geom.setHeight(new_h)
+
+        self.setGeometry(geom)
+        self._dragPos = new_pos
+
+
 def main():
     app = QApplication(sys.argv)
     window = GhostShellToolkit()
