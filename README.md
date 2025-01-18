@@ -44,3 +44,70 @@ Optional dependencies for enhanced output formatting:
 ```bash
 python -m venv .venv
 source .venv/bin/activate      # On Windows: .venv\Scripts\activate
+```
+
+### Install Dependencies:
+```bash
+pip install -r requirements.txt
+```
+Note: If certain tools (like scapy, pythonping, psutil, and netifaces) are not listed in requirements.txt, install them manually:
+
+```bash
+pip install PySide6 scapy pythonping psutil netifaces rich
+```
+
+### Ensure Nmap is Installed:
+
+On Ubuntu/Debian:
+```bash
+sudo apt-get install nmap
+```
+
+On Windows: Download and install from Nmap's official site and ensure it's added to your PATH.
+
+## Usage
+Launching the Application
+Run the main application using:
+
+```bash
+python main.py
+```
+This will open the GhostShell Toolkit window with a custom GUI. Alternatively, the individual modules can be ran as single files.
+
+## Available Tools
+### NET SCAN: Scans a network using Nmap.
+### HOSTSCAN: Scans a single host for open ports.
+### ADV CONN QUALITY: Measures connection quality over a user-defined period.
+### THROUGHPUT MONITOR: Monitors network throughput in real-time.
+### WIFI SURVEY: Lists nearby Wi-Fi networks with details.
+### ETH SURVEY: Lists network interfaces and their configuration.
+### PCAP CAPTURE: Captures packets on a network interface for analysis.
+
+Each button in the toolbar corresponds to one of these tools. You can click the buttons to perform the respective actions. Additionally, you can type subcommands directly into the input line at the bottom of the window to execute commands within the integrated pseudo-terminal.
+
+## Development
+Feel free to fork this repository, submit issues, or contribute pull requests. When contributing:
+
+Create a new branch:
+
+```bash
+git checkout -b feature/your-feature-name
+```
+Commit your changes:
+
+```bash
+git commit -am 'Add new feature'
+```
+Push to the branch:
+
+```bash
+git push origin feature/your-feature-name
+```
+Then, create a new Pull Request.
+
+## License
+This project is licensed under the MIT License. See the LICENSE file for details.
+
+### Note: Some features, like throughput monitoring, run external scripts or processes. Ensure those scripts (e.g., throughput.py) are in the correct location and unbuffered output is enabled if integrating with a GUI. Also, handling of Ctrl+C within a GUI application differs from terminal behavior; custom key events or stop buttons may be necessary for proper termination of long-running processes.
+
+Enjoy using GhostShell Toolkit for your network diagnostics and survey needs!
